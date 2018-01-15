@@ -126,7 +126,13 @@ select count(*) from inventory
 where film_id in (select film_id from film
 where title="Hunchback Impossible");
 
-
+-- 6e. Using the tables payment and customer and the JOIN command, list the total paid by each customer. 
+-- List the customers alphabetically by last name:
+SELECT c.first_name, c.last_name, SUM(p.amount) AS total_amount
+FROM customer c LEFT JOIN payment p
+USING (customer_id)
+GROUP BY customer_id
+ORDER BY c.last_name ASC;
 
 -- 7a 
 
@@ -153,13 +159,89 @@ where actor_id in
 
 
 
--- 7c
 
 
-select a.first_name, last_name , email from customer 
 
+-- 7c. You want to run an email marketing campaign in Canada, for which you will need the names and email 
+-- addresses of all Canadian customers. Use joins to retrieve this information.
+SELECT c.first_name, c.last_name, c.email
+FROM customer c 
+JOIN address a
+ON c.address_id = a.address_id
+JOIN city y
+ON a.city_id = y.city_id
+JOIN country r
+ON y.country_id = r.country_id
+WHERE country = 'Canada';
 
-select * from country ;
+-- 7d. Sales have been lagging among young families, and you wish to target all family movies for a promotion. 
+-- Identify all movies categorized as family films.
+SELECT title
+FROM film
+WHERE film_id IN
+(
+ SELECT film_id 
+ FROM film_category
+ WHERE category_id IN
+ (
+  SELECT category_id
+  FROM category
+  WHERE name = 'Family'
+ )
+);
 
-select * from customer; 
+-- 7e. Display the most frequently rented movies in descending order.
+SELECT f.title, COUNT(r.rental_id) AS frequency_rented
+FROM film f
+JOIN inventory i ON f.film_id = i.film_id
+JOIN rental r ON r.inventory_id = i.inventory_id
+GROUP BY f.title
+ORDER BY frequency_rented DESC;
 
+-- 7f. Write a query to display how much business, in dollars, each store brought in.
+SELECT s.store_id, SUM(p.amount) AS total_revenue
+FROM store s
+JOIN inventory i ON i.store_id = s.store_id
+JOIN rental r ON r.inventory_id = i.inventory_id
+JOIN payment p ON p.rental_id = r.rental_id
+GROUP BY s.store_id;
+
+-- 7g. Write a query to display for each store its store ID, city, and country.
+SELECT s.store_id, y.city, r.country
+FROM store s
+JOIN address a ON a.address_id = s.address_id
+JOIN city y ON y.city_id = a.city_id
+JOIN country r ON r.country_id = y.country_id;
+
+-- 7h. List the top five genres in gross revenue in descending order. 
+-- (Hint: you may need to use the following tables: category, film_category, inventory, payment, and rental.)
+SELECT c.name
+FROM category c
+JOIN film_category f ON f.category_id = c.category_id
+JOIN inventory i ON i.film_id = f.film_id
+JOIN rental r ON r.inventory_id = i.inventory_id
+JOIN payment p ON p.rental_id = r.rental_id
+GROUP BY c.name
+ORDER BY SUM(p.amount) DESC
+LIMIT 5;
+
+-- 8a. In your new role as an executive, you would like to have an easy way of viewing the 
+-- Top five genres by gross revenue. Use the solution from the problem above to create a view. 
+-- If you haven't solved 7h, you can substitute another query to create a view.
+CREATE VIEW top_five_genres AS
+SELECT c.name, SUM(p.amount) AS gross_revenue
+FROM category c
+JOIN film_category f ON f.category_id = c.category_id
+JOIN inventory i ON i.film_id = f.film_id
+JOIN rental r ON r.inventory_id = i.inventory_id
+JOIN payment p ON p.rental_id = r.rental_id
+GROUP BY c.name
+ORDER BY gross_revenue DESC
+LIMIT 5;
+
+-- 8b. How would you display the view that you created in 8a?
+SELECT *
+FROM top_five_genres;
+
+-- 8c. You find that you no longer need the view top_five_genres. Write a query to delete it.
+DROP VIEW top_five_genres;
